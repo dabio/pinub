@@ -1,0 +1,18 @@
+version: v1.0
+name: pinub - just links
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+
+blocks:
+- name: Test
+  task:
+    prologue:
+      commands:
+      - sem-version go 1.11
+      - checkout
+    jobs:
+    - name: Test
+      commands:
+      - go test -v -cover ./...
