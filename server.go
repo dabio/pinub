@@ -25,8 +25,8 @@ func Serve() {
 	// public
 	m.Get("/signin", s.public(s.showSignin()))
 	m.Post("/signin", s.public(s.todo()))
-	m.Get("/signup", s.public(s.todo()))
-	m.Post("/signup", s.public(s.todo()))
+	m.Get("/register", s.public(s.showRegister()))
+	m.Post("/register", s.public(s.todo()))
 	// private
 	m.Get("/profile", s.private(s.todo()))
 	m.Post("/profile", s.private(s.todo()))
@@ -56,6 +56,12 @@ func (s *server) public(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("public")
 		h(w, r)
+	}
+}
+
+func (s *server) showRegister() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s.tpl.render(w, "register.html", nil)
 	}
 }
 

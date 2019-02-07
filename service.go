@@ -1,21 +1,23 @@
 package main
 
+import "context"
+
 type userService interface {
-	// ByEmail(string) (*user, error)
-	// ByToken(string) (*user, error)
+	UserByEmail(context.Context, string) (*user, error)
+	UserByToken(context.Context, string) (*user, error)
 
-	// Create(*user) error
-	// Update(*user) error
-	// Delete(*user) error
+	CreateUser(context.Context, *user) error
+	UpdateUser(context.Context, *user) error
+	DeleteUser(context.Context, *user) error
 
-	// AddToken(*user) error
-	// RefreshToken(*user) error
+	UserAddToken(context.Context, *user) error
+	UserRefreshToken(context.Context, *user) error
 }
 
 type linkService interface {
-	// All(*user) ([]link, error)
-	// Create(*link, *user) error
-	// Delete(*link, *user) error
+	// AllLinks(context.Context, *user) ([]link, error)
+	CreateLink(context.Context, *link, *user) error
+	DeleteLink(context.Context, *link, *user) error
 }
 
 type client interface {

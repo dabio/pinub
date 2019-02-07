@@ -1,1 +1,20 @@
-This is layout
+<!DOCTYPE html>
+<html lang="en">
+<title>{{ block "title" .}} {{ end }} - pinub.com</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/tachyons@4.9.1/css/tachyons.min.css">
+
+<body class="sans-serif black-80 mw7 center mb5">
+    {{ block "body" . }}{{ end }}
+</body>
+<style>
+    time::after {
+        content: ' · '
+    }
+
+    button {
+        cursor: pointer;
+    }
+</style>
+
+</html>
