@@ -10,20 +10,21 @@
 
     <div>
         <label class="f6 b db mb2" for="email">Email</label>
-        <input class="input-reset ba b--black-20 pa2 db w-100 mb3" id="email" name="email" type="email" placeholder="email@example.com"
-            value="{% request.form.email %}" required{% if not request.form.email %} autofocus{% endif %}>
+        <input class="input-reset ba b--black-20 pa2 db w-100 mb3" id="email" name="email" type="email"
+            placeholder="email@example.com" value="{{ .User.Email }}" required{{ if not .User.Email }}
+            autofocus{{ end }}>
     </div>
 
     <div>
         <label class="f6 b db mb2" for="password">Password</label>
         <input class="input-reset ba b--black-20 pa2 db w-100 mb3" id="password" name="password" type="password"
-            placeholder="password" required{% if request.form.email %} autofocus{% endif %}>
+            placeholder="password" required{{ if .User.Email }} autofocus{{ end }}>
     </div>
 
     <div>
         <label class="f6 b db mb2" for="password_confirm">Confirm Password</label>
-        <input class="input-reset ba b--black-20 pa2 db w-100 mb4" id="password_confirm" name="password_confirm" type="password"
-            placeholder="password" required>
+        <input class="input-reset ba b--black-20 pa2 db w-100 mb4" id="password_confirm" name="password_confirm"
+            type="password" placeholder="password" required>
     </div>
 
     <div>

@@ -7,8 +7,9 @@ type userService interface {
 	UserByToken(context.Context, string) (*user, error)
 
 	CreateUser(context.Context, *user) error
-	UpdateUser(context.Context, *user) error
-	DeleteUser(context.Context, *user) error
+	// DeleteUser(context.Context, *user) error
+	UpdateUserEmail(context.Context, *user) error
+	UpdateUserPassword(context.Context, *user) error
 
 	UserAddToken(context.Context, *user) error
 	UserRefreshToken(context.Context, *user) error
@@ -16,8 +17,8 @@ type userService interface {
 
 type linkService interface {
 	// AllLinks(context.Context, *user) ([]link, error)
-	CreateLink(context.Context, *link, *user) error
-	DeleteLink(context.Context, *link, *user) error
+	CreateLinkForUser(context.Context, *link, *user) error
+	DeleteLinkForUser(context.Context, *link, *user) error
 }
 
 type client interface {
