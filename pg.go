@@ -63,7 +63,7 @@ func (c *pg) UserByEmail(ctx context.Context, email string) (*user, error) {
 
 	query := "SELECT id, email, password FROM users WHERE email = $1 LIMIT 1"
 	err := c.
-		QueryRowContext(ctx, query).
+		QueryRowContext(ctx, query, email).
 		Scan(&u.ID, &u.Email, &u.Password)
 
 	return &u, err
@@ -76,7 +76,7 @@ func (c *pg) UserByToken(ctx context.Context, token string) (*user, error) {
 	query := `SELECT id, email, password, token, active_at FROM users u
 		JOIN logins l ON u.id = l.user_id AND l.token = $1 LIMIT 1`
 	err := c.
-		QueryRowContext(ctx, query).
+		QueryRowContext(ctx, query, token).
 		Scan(&u.ID, &u.Email, &u.Password, &u.Token, &u.ActiveAt)
 
 	return &u, err

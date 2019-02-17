@@ -2,3 +2,5 @@ github.com/lib/pq v1.0.0 h1:X5PMW56eZitiTeO7tKzZxFCSpbFZJtkMMooicw2us9A=
 github.com/lib/pq v1.0.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/pinub/mux/v3 v3.0.0 h1:czKLkvHgNYfYZs3spz4CtDzz6Zoq5+qBULp6dlxh4j0=
 github.com/pinub/mux/v3 v3.0.0/go.mod h1:W9JlrMsRJOOpeaoWn43mZswy1WMjARHK4lcWoVtKa5A=
+golang.org/x/crypto v0.0.0-20190211182817-74369b46fc67 h1:ng3VDlRp5/DHpSWl02R4rM9I+8M2rhmsuLwAMmkLQWE=
+golang.org/x/crypto v0.0.0-20190211182817-74369b46fc67/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
