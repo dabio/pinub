@@ -20,6 +20,8 @@ var (
 	ErrInvalidEmail = errors.New("Email is not in a valid format")
 	// ErrEmailExists will be returned when the given email is already stored.
 	ErrEmailExists = errors.New("The email address is already in use by another account")
+	// ErrPasswordTooShort will be returned when the given password is too short.
+	ErrPasswordTooShort = errors.New("Password is too short")
 
 	emailRe = regexp.MustCompile(`.+@.+\..+`)
 )
@@ -46,15 +48,24 @@ type Backend interface {
 	UpdatePassword(string, string) error
 }
 
+// Config has all the required settings.
+type Config struct {
+	MinPassLen int
+}
+
 // Client hold all relevant information to retrieve a user from a backend.
 type Client struct {
 	backend Backend
+	config  Config
 }
 
 // NewClient creates a new Auth object with necessary information to get user
 // from a backend.
-func NewClient(backend Backend) *Client {
-	auth := &Client{backend: backend}
+func NewClient(config Config, backend Backend) *Client {
+	auth := &Client{
+		backend: backend,
+		config:  config,
+	}
 
 	return auth
 }
@@ -83,6 +94,11 @@ func (a *Client) SignupNewUser(email, password string) (*User, error) {
 	if !emailRe.MatchString(email) {
 		return nil, ErrInvalidEmail
 	}
+	// check for valid password length
+	if len(password) < a.config.MinPassLen {
+		return nil, ErrPasswordTooShort
+	}
+
 	// check if email is already in use
 	if u, _ := a.backend.ByEmail(email); u.Email != "" {
 		return nil, ErrEmailExists
@@ -128,6 +144,10 @@ func (a *Client) ChangeEmail(token string, email string) error {
 // ChangePassword changes a users password to the given one. Use token to
 // identify a user.
 func (a *Client) ChangePassword(token, password string) error {
+	if len(password) < a.config.MinPassLen {
+		return ErrPasswordTooShort
+	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return err

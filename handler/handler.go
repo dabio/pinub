@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -24,8 +23,6 @@ const (
 	signinTpl   = "signin.html"
 )
 
-var errPasswordTooShort = errors.New("Password is too short")
-
 type server struct {
 	tpl  *tpl
 	auth *auth.Client
@@ -37,7 +34,7 @@ func Serve() {
 	db := postgres.NewClient(os.Getenv("DATABASE_URL"))
 
 	s := &server{
-		auth: auth.NewClient(db),
+		auth: auth.NewClient(auth.Config{MinPassLen: minPassLen}, db),
 		tpl:  newTpl("templates/"),
 	}
 
@@ -120,11 +117,6 @@ func (s *server) register() http.HandlerFunc {
 		passw := strings.TrimSpace(r.FormValue("password"))
 
 		data := &register{User: &auth.User{Email: email}}
-		if len(passw) < minPassLen {
-			data.Error = errPasswordTooShort
-			s.tpl.render(w, registerTpl, data)
-			return
-		}
 		u, err := s.auth.SignupNewUser(email, passw)
 		if err != nil {
 			data.Error = err
@@ -206,11 +198,6 @@ func (s *server) profile() http.HandlerFunc {
 				return
 			}
 		case len(newpw) > 0:
-			if len(newpw) < minPassLen {
-				data.Error = errPasswordTooShort
-				s.tpl.render(w, profileTpl, data)
-				return
-			}
 			if _, err := s.auth.VerifyPassword(s.user.Email, curpw); err != nil {
 				data.Error = err
 				s.tpl.render(w, profileTpl, data)
