@@ -1,35 +1,44 @@
-package main
+package handler
 
 import (
-	"context"
-	"database/sql"
-	"fmt"
+	"errors"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/dabio/pinub/auth"
+	"github.com/dabio/pinub/postgres"
 	"github.com/pinub/mux/v3"
-	"golang.org/x/crypto/bcrypt"
 )
 
-const cookieName = "keks"
-const cookieDays = 14
+const (
+	cookieName = "keks"
+	cookieDays = 14
+
+	minPassLen = 4
+
+	profileTpl  = "profile.html"
+	registerTpl = "register.html"
+	signinTpl   = "signin.html"
+)
+
+var errPasswordTooShort = errors.New("Password is too short")
 
 type server struct {
-	ctx  context.Context
-	db   client
 	tpl  *tpl
-	user *user
+	auth *auth.Client
+	user *auth.User
 }
 
 // Serve will configure the routes and start the http server.
 func Serve() {
+	db := postgres.NewClient(os.Getenv("DATABASE_URL"))
+
 	s := &server{
-		ctx: context.Background(),
-		tpl: newTpl("templates/"),
-		db:  newPg(os.Getenv("DATABASE_URL")),
+		auth: auth.NewClient(db),
+		tpl:  newTpl("templates/"),
 	}
 
 	m := mux.New()
@@ -39,29 +48,30 @@ func Serve() {
 	m.Get("/register", s.public(s.showRegister()))
 	m.Post("/register", s.public(s.register()))
 	// private
-	m.Get("/profile", s.private(s.todo()))
-	m.Post("/profile", s.private(s.todo()))
+	m.Get("/profile", s.private(s.showProfile()))
+	m.Post("/profile", s.private(s.profile()))
 	m.Get("/signout", s.private(s.signout()))
 	m.NotFound = s.todo()
 
 	// middlewares
-	h := s.auth(m)
+	h := s.authenticate(m)
 
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), h))
 }
 
 // middlewares
 
-func (s *server) auth(h http.Handler) http.HandlerFunc {
+func (s *server) authenticate(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if c, err := r.Cookie(cookieName); err == nil {
-			if u, err := s.db.UserService().UserByToken(s.ctx, c.Value); err == nil {
+			if u, err := s.auth.AccountInfo(c.Value); err == nil {
 				s.user = u
 				if !strings.HasPrefix(r.URL.String(), "/signout") {
 					refreshCookie(w, c)
 				}
-				go s.db.UserService().UserRefreshToken(s.ctx, u)
+				// go s.db.UserService().RefreshToken(s.ctx, u.ID())
 			} else {
+				log.Print(err)
 				deleteCookie(w, c)
 			}
 		}
@@ -93,51 +103,33 @@ func (s *server) public(h http.HandlerFunc) http.HandlerFunc {
 
 // public handlers
 
+type register struct {
+	User  *auth.User
+	Error error
+}
+
 func (s *server) showRegister() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		s.tpl.render(w, "register.html", map[string]interface{}{
-			"User": &user{},
-		})
+		s.tpl.render(w, registerTpl, &register{User: &auth.User{}})
 	}
 }
 
 func (s *server) register() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		u := &user{
-			Email:    strings.TrimSpace(r.FormValue("email")),
-			Password: strings.TrimSpace(r.FormValue("password")),
-		}
-		data := map[string]interface{}{
-			"User": u,
-		}
-		// check for valid fields
-		if err := u.Validate(); err != nil {
-			data["Error"] = err
-			s.tpl.render(w, "register.html", data)
-			return
-		}
-		// check for password confirmation
-		if u.Password != strings.TrimSpace(r.FormValue("password_confirm")) {
-			data["Error"] = fmt.Errorf("passwords do not match")
-			s.tpl.render(w, "register.html", data)
-			return
-		}
-		// check if user is already in database
-		if _, err := s.db.UserService().UserByEmail(s.ctx, u.Email); err != sql.ErrNoRows {
-			data["Error"] = fmt.Errorf("user exists already")
-			s.tpl.render(w, "register.html", data)
-			return
-		}
+		email := strings.TrimSpace(r.FormValue("email"))
+		passw := strings.TrimSpace(r.FormValue("password"))
 
-		u.Password, _ = hashPassword(u.Password)
-		if err := s.db.UserService().CreateUser(s.ctx, u); err != nil {
-			data["Error"] = fmt.Errorf("cannot persist user to database")
-			s.tpl.render(w, "register.html", data)
+		data := &register{User: &auth.User{Email: email}}
+		if len(passw) < minPassLen {
+			data.Error = errPasswordTooShort
+			s.tpl.render(w, registerTpl, data)
 			return
 		}
-
-		if err := s.db.UserService().UserAddToken(s.ctx, u); err != nil {
-			log.Print("Cannot save a new token for newly created user")
+		u, err := s.auth.SignupNewUser(email, passw)
+		if err != nil {
+			data.Error = err
+			s.tpl.render(w, registerTpl, data)
+			return
 		}
 
 		createCookie(w, cookieName, u.Token)
@@ -145,11 +137,14 @@ func (s *server) register() http.HandlerFunc {
 	}
 }
 
+type signin struct {
+	User  *auth.User
+	Error error
+}
+
 func (s *server) showSignin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		s.tpl.render(w, "signin.html", map[string]interface{}{
-			"User": &user{},
-		})
+		s.tpl.render(w, signinTpl, &signin{User: &auth.User{}})
 	}
 }
 
@@ -158,30 +153,21 @@ func (s *server) signin() http.HandlerFunc {
 		email := strings.TrimSpace(r.FormValue("email"))
 		passw := strings.TrimSpace(r.FormValue("password"))
 
-		u, err := s.db.UserService().UserByEmail(s.ctx, email)
-		data := map[string]interface{}{
-			"User": u,
-		}
+		data := &signin{User: &auth.User{Email: email}}
+
+		user, err := s.auth.VerifyPassword(email, passw)
 		if err != nil {
-			data["Error"] = "email is unknown"
-			s.tpl.render(w, "signin.html", data)
+			data.Error = err
+			s.tpl.render(w, signinTpl, data)
 			return
 		}
 
-		if !isValidPassword(u.Password, passw) {
-			data["Error"] = "cannot sign in user"
-			s.tpl.render(w, "signin.html", data)
-			return
-		}
-
-		if err := s.db.UserService().UserAddToken(s.ctx, u); err != nil {
-			log.Print("Cannot save a new token for signed in user")
-		}
-
-		createCookie(w, cookieName, u.Token)
+		createCookie(w, cookieName, user.Token)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }
+
+// private handlers
 
 func (s *server) signout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -194,13 +180,58 @@ func (s *server) signout() http.HandlerFunc {
 	}
 }
 
+type profile struct {
+	User  *auth.User
+	Error error
+}
+
+func (s *server) showProfile() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s.tpl.render(w, profileTpl, &profile{User: s.user})
+	}
+}
+
+func (s *server) profile() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		email := strings.TrimSpace(r.FormValue("email"))
+		curpw := strings.TrimSpace(r.FormValue("password"))
+		newpw := strings.TrimSpace(r.FormValue("new_password"))
+
+		data := &profile{User: s.user}
+		switch {
+		case len(email) > 0 && email != s.user.Email:
+			if err := s.auth.ChangeEmail(s.user.Token, email); err != nil {
+				data.Error = err
+				s.tpl.render(w, profileTpl, data)
+				return
+			}
+		case len(newpw) > 0:
+			if len(newpw) < minPassLen {
+				data.Error = errPasswordTooShort
+				s.tpl.render(w, profileTpl, data)
+				return
+			}
+			if _, err := s.auth.VerifyPassword(s.user.Email, curpw); err != nil {
+				data.Error = err
+				s.tpl.render(w, profileTpl, data)
+				return
+			}
+			if err := s.auth.ChangePassword(s.user.Token, newpw); err != nil {
+				data.Error = err
+				s.tpl.render(w, profileTpl, data)
+				return
+			}
+		}
+
+		http.Redirect(w, r, "/profile", http.StatusSeeOther)
+	}
+}
+
 func (s *server) todo() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`hello`))
 	}
 }
-
-// private handlers
 
 // helpers
 
@@ -224,16 +255,4 @@ func deleteCookie(w http.ResponseWriter, cookie *http.Cookie) {
 	cookie.Path = "/"
 	cookie.MaxAge = -1
 	http.SetCookie(w, cookie)
-}
-
-func isValidPassword(hash, password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-
-	return err == nil
-}
-
-func hashPassword(password string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-
-	return string(hash), err
 }

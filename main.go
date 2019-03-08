@@ -1,5 +1,7 @@
 package main
 
+import "github.com/dabio/pinub/handler"
+
 func main() {
-	Serve()
+	handler.Serve()
 }
