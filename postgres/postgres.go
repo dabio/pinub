@@ -18,9 +18,9 @@ type Client struct {
 
 // NewClient returns a new Postgres client.
 func NewClient(dataSource string) *Client {
-	c := &Client{dataSource: dataSource}
+	c := Client{dataSource: dataSource}
 
-	return c
+	return &c
 }
 
 func (c *Client) initClient() {

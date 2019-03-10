@@ -62,12 +62,12 @@ type Client struct {
 // NewClient creates a new Auth object with necessary information to get user
 // from a backend.
 func NewClient(config Config, backend Backend) *Client {
-	auth := &Client{
+	auth := Client{
 		backend: backend,
 		config:  config,
 	}
 
-	return auth
+	return &auth
 }
 
 // VerifyPassword will sign in a user with an email and password.

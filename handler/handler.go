@@ -32,9 +32,10 @@ type server struct {
 // Serve will configure the routes and start the http server.
 func Serve() {
 	db := postgres.NewClient(os.Getenv("DATABASE_URL"))
+	auth := auth.NewClient(auth.Config{MinPassLen: minPassLen}, db)
 
 	s := &server{
-		auth: auth.NewClient(auth.Config{MinPassLen: minPassLen}, db),
+		auth: auth,
 		tpl:  newTpl("templates/"),
 	}
 
