@@ -29,6 +29,19 @@ func validByEmail(email, password string) func(string) (*auth.User, error) {
 		return &u, nil
 	}
 }
+
+func validByToken(email, password string) func(string) (*auth.User, error) {
+	return func(token string) (*auth.User, error) {
+		hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		u := auth.User{
+			Email:    email,
+			Password: string(hash),
+			Token:    token,
+		}
+		return &u, nil
+	}
+}
+
 func validNewUser(email, hash string) func(string, string) (*auth.User, error) {
 	return func(string, string) (*auth.User, error) {
 		u := auth.User{
@@ -73,7 +86,7 @@ func TestSignupNewUser(t *testing.T) {
 		t.Error("Password should be too short")
 	}
 
-	email := "test@email.com"
+	const email = "test@email.com"
 	m.ByEmailFn = validByEmail(email, "password")
 
 	if _, err := c.SignupNewUser("test@email.com", "pass"); err != auth.ErrEmailExists {
@@ -91,5 +104,66 @@ func TestSignupNewUser(t *testing.T) {
 
 	if _, err := c.SignupNewUser(email, "password"); err != nil {
 		t.Errorf("Valid user should be returned %v", err)
+	}
+}
+
+func TestAccountInfo(t *testing.T) {
+	m := mock.Backend{}
+	c := newClient(&m)
+
+	const email = "test@email.com"
+	m.ByTokenFn = validByToken(email, "password")
+	u, err := c.AccountInfo(uuid)
+	if err != nil {
+		t.Error("No error should occour")
+	}
+	if u.Token != uuid {
+		t.Errorf("Token should be %v", uuid)
+	}
+	if u.Email != email {
+		t.Errorf("Email should be %v", email)
+	}
+}
+
+func TestChangeEmail(t *testing.T) {
+	m := mock.Backend{}
+	c := newClient(&m)
+
+	if err := c.ChangeEmail(uuid, "email"); err == nil {
+		t.Error("Email is invalid.")
+	}
+
+	const email = "test@email.com"
+
+	m.ByEmailFn = validByEmail(email, "password")
+	if err := c.ChangeEmail(uuid, email); err != auth.ErrEmailExists {
+		t.Error("Email should exist already.")
+	}
+
+	m.ByEmailFn = func(string) (*auth.User, error) {
+		var u auth.User
+		return &u, errors.New("a random error")
+	}
+	m.UpdateEmailFn = func(string, string) error {
+		return nil
+	}
+	if err := c.ChangeEmail(uuid, email); err != nil {
+		t.Error("Change email should be valid.")
+	}
+}
+
+func TestChangePassword(t *testing.T) {
+	m := mock.Backend{}
+	c := newClient(&m)
+
+	if err := c.ChangePassword(uuid, "123"); err != auth.ErrPasswordTooShort {
+		t.Error("Password should be too short.")
+	}
+
+	m.UpdatePasswordFn = func(string, string) error {
+		return nil
+	}
+	if err := c.ChangePassword(uuid, "password"); err != nil {
+		t.Error("Password change should work.")
 	}
 }
