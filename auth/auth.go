@@ -26,9 +26,8 @@ var (
 	emailRe = regexp.MustCompile(`.+@.+\..+`)
 )
 
-// User has all attributes of a user.
 type User struct {
-	// ID        string
+	ID        string
 	Email     string
 	Password  string
 	Token     string
@@ -72,8 +71,10 @@ func NewClient(config Config, backend Backend) *Client {
 
 // VerifyPassword will sign in a user with an email and password.
 func (a *Client) VerifyPassword(email, passwd string) (*User, error) {
-	u, err := a.backend.ByEmail(email)
-	if err != nil {
+	var u *User
+	var err error
+
+	if u, err = a.backend.ByEmail(email); err != nil {
 		return nil, ErrUnknownEmail
 	}
 
@@ -81,8 +82,8 @@ func (a *Client) VerifyPassword(email, passwd string) (*User, error) {
 		return nil, ErrMismatchedHashAndPassword
 	}
 
-	if u.Token, err = a.backend.NewToken(email); err != nil {
-		return nil, err
+	if token, err := a.backend.NewToken(email); err == nil {
+		u.Token = token
 	}
 
 	return u, nil
@@ -113,8 +114,8 @@ func (a *Client) SignupNewUser(email, password string) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	if u.Token, err = a.backend.NewToken(u.Email); err != nil {
-		return nil, err
+	if token, err := a.backend.NewToken(email); err == nil {
+		u.Token = token
 	}
 
 	return u, nil

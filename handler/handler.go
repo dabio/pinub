@@ -3,9 +3,9 @@ package handler
 import (
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/dabio/pinub/auth"
 	"github.com/dabio/pinub/postgres"
@@ -17,7 +17,9 @@ const (
 	cookieDays = 14
 
 	minPassLen = 4
+	minLinkLen = 4
 
+	indexTpl    = "index.html"
 	profileTpl  = "profile.html"
 	registerTpl = "register.html"
 	signinTpl   = "signin.html"
@@ -49,7 +51,8 @@ func Serve() {
 	m.Get("/profile", s.private(s.showProfile()))
 	m.Post("/profile", s.private(s.profile()))
 	m.Get("/signout", s.private(s.signout()))
-	m.NotFound = s.todo()
+	m.Get("/", s.index())
+	m.NotFound = s.notFound()
 
 	// middlewares
 	h := s.authenticate(m)
@@ -215,32 +218,49 @@ func (s *server) profile() http.HandlerFunc {
 	}
 }
 
-func (s *server) todo() http.HandlerFunc {
+func (s *server) index() http.HandlerFunc {
+	type index struct {
+		User  *auth.User
+		Error error
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`hello`))
+		data := index{User: s.user}
+		s.tpl.render(w, indexTpl, &data)
 	}
 }
 
-// helpers
-
-func createCookie(w http.ResponseWriter, name, value string) {
-	cookie := &http.Cookie{
-		Name:    name,
-		Value:   value,
-		Path:    "/",
-		Expires: time.Now().Add(cookieDays * time.Hour * 24),
+func (s *server) notFound() http.HandlerFunc {
+	ignoredFiles := map[string]bool{
+		"apple-touch-icon-152x152-precomposed.png": true,
+		"apple-touch-icon-152x152.png":             true,
+		"apple-touch-icon-120x120-precomposed.png": true,
+		"apple-touch-icon-120x120.png":             true,
+		"apple-touch-icon-precomposed.png":         true,
+		"apple-touch-icon.png":                     true,
+		"favicon.ico":                              true,
 	}
-	http.SetCookie(w, cookie)
-}
 
-func refreshCookie(w http.ResponseWriter, cookie *http.Cookie) {
-	cookie.Path = "/"
-	cookie.Expires = time.Now().Add(cookieDays * time.Hour * 24)
-	http.SetCookie(w, cookie)
-}
+	return func(w http.ResponseWriter, r *http.Request) {
+		link := strings.TrimSpace(r.URL.String())[1:]
 
-func deleteCookie(w http.ResponseWriter, cookie *http.Cookie) {
-	cookie.Path = "/"
-	cookie.MaxAge = -1
-	http.SetCookie(w, cookie)
+		test := len(link) < minLinkLen || s.user == nil
+		if _, ok := ignoredFiles[link]; ok || test {
+			http.NotFound(w, r)
+			return
+		}
+
+		if !strings.HasPrefix(link, "http") {
+			link = "http://" + link
+		}
+		u, err := url.Parse(link)
+		if err != nil {
+			log.Printf("Link is invalid: %v", err)
+			http.NotFound(w, r)
+			return
+		}
+
+		log.Printf("%v %v", u.String(), err)
+		w.Write([]byte(`blah`))
+	}
 }
