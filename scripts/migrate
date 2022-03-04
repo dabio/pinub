@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -eEuo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." &>/dev/null; pwd -P)"
+
+# DB_HOST="${DB_HOST:-127.0.0.1}"
+# DB_PORT="${DB_PORT:-5432}"
+# DB_USER="${DB_USER:-$(whoami)}"
+# DB_NAME="${DB_NAME:-pinub_dev}"
+# DB_PASSWORD="${DB_PASSWORD:-}"
+# DB_SSLMODE="${DB_SSLMODE:-disable}"
+#
+# DB_URL="postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=${DB_SSLMODE}"
+
+DB_URL="sqlite3://db/db.sqlite3"
+
+if [ $# -eq 0 ]; then
+    set -- "up"
+fi
+
+migrate -database "${DB_URL}" -path "${ROOT}/migrations" "$@"
