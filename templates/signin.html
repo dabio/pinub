@@ -2,4 +2,20 @@
 
 {{define "content"}}
 <p>hello <b>signin</b></p>
+<form method="post">
+	<fieldset>
+		<legend></legend>
+		<div>
+			<label for="email">Email</label>
+			<input type="email" name="email" placeholder="email@example.com" required autofocus>
+		</div>
+		<div>
+			<label for="password">Password</label>
+			<input type="password" name="password" placeholder="password" required>
+		</div>
+	</fieldset>
+	<div>
+		<button type="submit">Sign In</button>
+	</div>
+</form>
 {{end}}
