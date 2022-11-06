@@ -31,7 +31,7 @@ const (
 var tpls embed.FS
 
 type App struct {
-	Port       string
+	Address    string
 	StaticBase string
 	DB         *sql.DB
 
@@ -55,8 +55,8 @@ func (a *App) Start() {
 
 	m.Use(logreq)
 
-	log.Printf("Starting app on %s", a.Port)
-	log.Fatal(http.ListenAndServe(a.Port, logreq(m)))
+	log.Printf("Starting app on %s", a.Address)
+	log.Fatal(http.ListenAndServe(a.Address, logreq(m)))
 }
 
 func (a *App) index() http.HandlerFunc {
@@ -179,8 +179,8 @@ func render(rw http.ResponseWriter, tpl *template.Template, data interface{}) {
 	}
 }
 
-func logreq(next http.Handler) http.HandlerFunc {
-	return func(rw http.ResponseWriter, r *http.Request) {
+func logreq(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		next.ServeHTTP(rw, r)
 
@@ -191,5 +191,5 @@ func logreq(next http.Handler) http.HandlerFunc {
 			r.URL.String(),
 			r.Proto,
 		)
-	}
+	})
 }

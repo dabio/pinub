@@ -10,15 +10,20 @@ import (
 )
 
 func main() {
-	db, err := sql.Open("sqlite", env("DATABASE_URL", "db/development.sqlite3"))
+	db, err := sql.Open("sqlite", env("DATABASE_URL", "db/db.sqlite3"))
 	if err != nil {
-		log.Fatal("could not open database")
+		log.Fatalf("could not open database: %v", err)
 	}
 	defer db.Close()
 
+	err = db.Ping()
+	if err != nil {
+		log.Fatalf("could not open database: %v", err)
+	}
+
 	server := pinub.App{
 		DB:         db,
-		Port:       ":" + env("PORT", "8080"),
+		Address:    env("ADDRESS", ":8080"),
 		StaticBase: env("STATIC_BASE", "/static"),
 	}
 	server.Start()

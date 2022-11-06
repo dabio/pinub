@@ -1,7 +1,4 @@
-
 -- sqlite --
-BEGIN;
-
 CREATE TABLE users (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "email" VARYING CHARACTER (254) NOT NULL UNIQUE,
@@ -31,7 +28,6 @@ CREATE TABLE logins (
   "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("user_id", "token")
 );
-END;
 -- end sqlite --
 
 -- begin postgresql --
