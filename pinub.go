@@ -27,8 +27,13 @@ const (
 	cookieDays = 30
 )
 
-//go:embed templates/*.html
-var tpls embed.FS
+var (
+	//go:embed templates/*.html
+	tpls embed.FS
+
+	//go:embed schema.sql
+	schemaSQL string
+)
 
 type App struct {
 	Address    string
@@ -40,6 +45,11 @@ type App struct {
 }
 
 func (a *App) Start() {
+	// Run migration.
+	if _, err := a.DB.Exec(schemaSQL); err != nil {
+		log.Fatalf("cannot migrate schema: %v", err)
+	}
+
 	a.linkService = &LinkService{DB: a.DB}
 	a.userService = &UserService{DB: a.DB}
 
@@ -55,8 +65,8 @@ func (a *App) Start() {
 
 	m.Use(logreq)
 
-	log.Printf("Starting app on %s", a.Address)
-	log.Fatal(http.ListenAndServe(a.Address, logreq(m)))
+	log.Printf("Starting app on http://%s", a.Address)
+	log.Fatal(http.ListenAndServe(a.Address, m))
 }
 
 func (a *App) index() http.HandlerFunc {

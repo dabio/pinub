@@ -10,16 +10,11 @@ import (
 )
 
 func main() {
-	db, err := sql.Open("sqlite", env("DATABASE_URL", "db/db.sqlite3"))
+	db, err := sql.Open("sqlite", env("DSN", "db.sqlite3"))
 	if err != nil {
 		log.Fatalf("could not open database: %v", err)
 	}
 	defer db.Close()
-
-	err = db.Ping()
-	if err != nil {
-		log.Fatalf("could not open database: %v", err)
-	}
 
 	server := pinub.App{
 		DB:         db,

@@ -11,7 +11,7 @@ processes = []
   destination = /mnt/data
 
 [env]
-  DATABASE_URL = /mnt/data/db.sqlite3
+  DSN = /mnt/data/db.sqlite3
 
 [experimental]
   allowed_public_ports = []
