@@ -2,4 +2,21 @@
 
 {{define "content"}}
 <p>hello <b>profile</b></p>
+<form method="post">
+	<div>
+		<label for="email">Email</label>
+		<input id="email" value="{{ .Email }}" type="email" name="email" placeholder="email@example.com" required>
+	</div>
+	<div>
+		<label for="newpass">New Password (optional)</label>
+		<input id="newpass" type="password" name="newpass">
+	</div>
+	<div>
+		<label for="pass">Current Password</label>
+		<input id="pass" type="password" name="pass" required>
+	</div>
+	<div>
+		<button type="submit">Update Profile</button>
+	</div>
+</form>
 {{end}}

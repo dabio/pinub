@@ -4,8 +4,11 @@
 <p>hello <b>index</b></p>
 {{end}}
 
-<ul>
-{{ range . }}
-<li><a href="{{ .URL }}">{{ .URL }}</a></li>
+{{ range .Links }}
+<article>
+<a href="{{ .URL }}">{{ .URL | lremove "https://" | lremove "http://" }}</a>
+<div>
+<time>{{ .CreatedAt | timesince }}</time>
+</div>
+</article>
 {{ end }}
-</ul>

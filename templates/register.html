@@ -2,4 +2,21 @@
 
 {{define "content"}}
 <p>hello <b>register</b></p>
+<form method="post">
+	<div>
+		<label for="email">Email</label>
+		<input type="email" name="email" placeholder="email@example.com" required autofocus>
+	</div>
+	<div>
+		<label for="password">Password</label>
+		<input type="password" name="password" placeholder="password" required>
+	</div>
+	<div>
+		<label for="password">Repeat Password</label>
+		<input type="password" name="passrepa" placeholder="repeat password" required>
+	</div>
+	<div>
+		<button type="submit">Register</button>
+	</div>
+</form>
 {{end}}
