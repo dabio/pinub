@@ -12,6 +12,7 @@ processes = []
 
 [env]
   DSN = "/mnt/data/db.sqlite3"
+  LISTEN_ADDRESS = "0.0.0.0:8080"
 
 [experimental]
   allowed_public_ports = []

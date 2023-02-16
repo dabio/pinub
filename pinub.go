@@ -42,7 +42,7 @@ type App struct {
 	DSN           string
 	SecretKey     []byte
 
-	userService *UserService
+	db *UserService
 }
 
 func (a *App) Start() {
@@ -58,7 +58,7 @@ func (a *App) Start() {
 	if _, err := db.Exec(schemaSQL); err != nil {
 		slog.Error("cannot run migrations", err, "dsn", a.DSN)
 	}
-	a.userService = &UserService{DB: db}
+	a.db = &UserService{DB: db}
 
 	m := http.NewServeMux()
 	m.HandleFunc("/", private(a.index()))
@@ -119,7 +119,7 @@ func (a *App) index() http.HandlerFunc {
 		rawLink := strings.TrimSpace(r.URL.String())[1:]
 		// show list of links
 		if len(rawLink) == 0 {
-			links, err := a.userService.Links(r.Context(), user)
+			links, err := a.db.Links(r.Context(), user)
 			if err != nil {
 				http.Error(w, "cannot get links from database", http.StatusBadRequest)
 			}
@@ -159,7 +159,7 @@ func (a *App) index() http.HandlerFunc {
 			URL: url.String(),
 		}
 
-		if err := a.userService.Addlink(r.Context(), user, link); err != nil {
+		if err := a.db.Addlink(r.Context(), user, link); err != nil {
 			http.Error(w, "cannot add link to user", http.StatusBadRequest)
 			return
 		}
@@ -194,7 +194,7 @@ func (a *App) signin() http.HandlerFunc {
 		}
 
 		// check if user is already present
-		user, err := a.userService.ByEmail(r.Context(), mail.Address)
+		user, err := a.db.ByEmail(r.Context(), mail.Address)
 		if err != nil {
 			http.Error(w, "email is unknown", http.StatusBadRequest)
 			return
@@ -207,7 +207,7 @@ func (a *App) signin() http.HandlerFunc {
 		}
 
 		// create token
-		if err := a.userService.CreateToken(r.Context(), user); err != nil {
+		if err := a.db.CreateToken(r.Context(), user); err != nil {
 			http.Error(w, "cannot create token", http.StatusBadRequest)
 			return
 		}
@@ -272,7 +272,7 @@ func (a *App) register() http.HandlerFunc {
 		}
 
 		// check if user is already present
-		user, err := a.userService.ByEmail(r.Context(), mail.Address)
+		user, err := a.db.ByEmail(r.Context(), mail.Address)
 		if user != nil {
 			http.Error(w, "email already in database", http.StatusBadRequest)
 			return
@@ -286,13 +286,13 @@ func (a *App) register() http.HandlerFunc {
 		}
 
 		// create user
-		if err := a.userService.CreateUser(r.Context(), user); err != nil {
+		if err := a.db.CreateUser(r.Context(), user); err != nil {
 			http.Error(w, "cannot create user", http.StatusBadRequest)
 			return
 		}
 
 		// create token
-		if err := a.userService.CreateToken(r.Context(), user); err != nil {
+		if err := a.db.CreateToken(r.Context(), user); err != nil {
 			http.Error(w, "cannot create token", http.StatusBadRequest)
 			return
 		}
@@ -340,7 +340,7 @@ func (a *App) profile() http.HandlerFunc {
 			http.Error(w, "cannot parse email", http.StatusBadRequest)
 			return
 		}
-		if err := a.userService.UpdateEmail(r.Context(), user, mail.Address); err != nil {
+		if err := a.db.UpdateEmail(r.Context(), user, mail.Address); err != nil {
 			http.Error(w, "cannot update email", http.StatusBadRequest)
 			return
 		}
@@ -355,7 +355,7 @@ func (a *App) profile() http.HandlerFunc {
 				return
 			}
 
-			if err := a.userService.UpdatePassword(r.Context(), user, string(hash)); err != nil {
+			if err := a.db.UpdatePassword(r.Context(), user, string(hash)); err != nil {
 				http.Error(w, "cannot update password", http.StatusBadRequest)
 				return
 			}
@@ -379,7 +379,7 @@ func healthz(db *sql.DB) http.HandlerFunc {
 func (a *App) auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if token, err := cookies.ReadEncrypted(r, cookieName, a.SecretKey); err == nil { // if NO error
-			if user, err := a.userService.ByToken(r.Context(), token); err == nil { // of NO error
+			if user, err := a.db.ByToken(r.Context(), token); err == nil { // of NO error
 				// extend the cookie
 				cookie := http.Cookie{
 					Name:     cookieName,
@@ -394,7 +394,7 @@ func (a *App) auth(next http.Handler) http.Handler {
 					slog.Error("cannot save cookie", err)
 				}
 
-				if err := a.userService.UpdateToken(r.Context(), token); err != nil {
+				if err := a.db.UpdateToken(r.Context(), token); err != nil {
 					slog.Error("couldn't update token", err)
 				}
 				// extend token in db
