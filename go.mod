@@ -6,7 +6,7 @@ require (
 	github.com/google/uuid v1.3.0
 	golang.org/x/crypto v0.9.0
 	golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb
-	modernc.org/sqlite v1.22.1
+	modernc.org/sqlite v1.23.0
 )
 
 require (
