@@ -3,7 +3,7 @@ module dab.io/pinub
 go 1.19
 
 require (
-	github.com/google/uuid v1.5.0
+	github.com/google/uuid v1.6.0
 	golang.org/x/crypto v0.18.0
 	golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb
 	modernc.org/sqlite v1.28.0
