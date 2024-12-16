@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/google/uuid v1.6.0
-	golang.org/x/crypto v0.30.0
+	golang.org/x/crypto v0.31.0
 	golang.org/x/exp v0.0.0-20231108232855-2478ac86f678
 	modernc.org/sqlite v1.34.2
 )
