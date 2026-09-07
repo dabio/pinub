@@ -1,10 +1,10 @@
 module dab.io/pinub
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/google/uuid v1.6.0
-	golang.org/x/crypto v0.55.0
+	golang.org/x/crypto v0.56.0
 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546
 	modernc.org/sqlite v1.58.0
 )
